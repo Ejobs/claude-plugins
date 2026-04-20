@@ -69,7 +69,8 @@ esac
 FILENAME="ejobs-cli-${OS}-${ARCH}"
 
 # All binaries + manifest.json are released as assets of this plugin repo.
-RELEASE_TAG="cli-v${TARGET_VERSION}"
+# Unified versioning: release tag matches plugin version exactly (v<X.Y.Z>).
+RELEASE_TAG="v${TARGET_VERSION}"
 BASE_URL="https://github.com/Ejobs/claude-plugins/releases/download/${RELEASE_TAG}"
 
 MANIFEST_URL="${BASE_URL}/manifest.json"

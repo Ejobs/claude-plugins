@@ -1,6 +1,6 @@
 {
   "name": "ejobs",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Agent-first eJobs CLI. Ships an ejobs-cli binary auto-downloaded from GitHub Releases, plus skills for candidate and recruiter workflows.",
   "author": {
     "name": "eJobs",
