@@ -61,8 +61,8 @@ IDs — never hardcode.**
   <unique-id><![CDATA[my-internal-ref-001]]></unique-id>
   <date>2026-03-18</date>
   <type>989</type>
-  <company><![CDATA[Cargo Transport Special]]></company>
-  <title><![CDATA[Sofer profesionist]]></title>
+  <company><![CDATA[ACME Example SRL]]></company>
+  <title><![CDATA[Professional driver]]></title>
   <positions>1</positions>
   <departments><department>31</department></departments>
   <industries><industry>19</industry></industries>

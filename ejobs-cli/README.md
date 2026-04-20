@@ -30,15 +30,18 @@ skills/
   ejobs-recruiter/   ← recruiter workflows
 ```
 
-## Upgrading the bundled CLI
+## Getting updates
 
-1. Cut a new `ejobs-cli` release → builds binaries + `manifest.json`.
-2. Upload binaries + `manifest.json` to this repo's GitHub Release at tag
-   `cli-v<version>` (e.g. `cli-v0.2.0`).
-3. Bump `VERSION` here + `version` in `.claude-plugin/plugin.json`.
-4. Commit + push. Users with marketplace auto-update enabled receive it on
-   next session; others run `/plugin marketplace update ejobs-cli` +
-   `/plugin update ejobs@ejobs-cli`.
+Users with marketplace auto-update enabled receive new versions on next
+session. Otherwise:
+
+```
+/plugin marketplace update ejobs-cli
+/plugin update ejobs@ejobs-cli
+```
+
+The next `SessionStart` detects the changed `VERSION` and downloads the
+matching binary.
 
 ## Authentication
 
