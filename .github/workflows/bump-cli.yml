@@ -47,17 +47,24 @@ jobs:
         run: |
           echo "${{ steps.target.outputs.version }}" > ejobs-cli/VERSION
 
-      - name: Bump plugin.json
+      - name: Bump plugin.json (minimal in-place edit)
         run: |
-          python3 - <<'PY'
-          import json, pathlib
-          p = pathlib.Path("ejobs-cli/.claude-plugin/plugin.json")
-          m = json.loads(p.read_text())
-          m["version"] = "${{ steps.target.outputs.version }}"
-          p.write_text(json.dumps(m, indent=2) + "\n")
-          PY
+          # Use sed to touch only the `"version":` line so the PR diff
+          # contains no cosmetic reformatting noise.
+          sed -i -E 's/("version"[[:space:]]*:[[:space:]]*")[^"]+/\1${{ steps.target.outputs.version }}/' \
+            ejobs-cli/.claude-plugin/plugin.json
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create PR
+        if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "Bump ejobs-cli to ${{ steps.target.outputs.version }}"
@@ -66,9 +73,15 @@ jobs:
           body: |
             Automated bump triggered by a new `ejobs-cli` release.
 
-            - VERSION → `${{ steps.target.outputs.version }}`
-            - plugin.json version → `${{ steps.target.outputs.version }}`
+            - `ejobs-cli/VERSION` → `${{ steps.target.outputs.version }}`
+            - `ejobs-cli/.claude-plugin/plugin.json` `version` → `${{ steps.target.outputs.version }}`
 
             Before merging, confirm:
-            - [ ] Release `cli-v${{ steps.target.outputs.version }}` exists on this repo with all binaries + `manifest.json` attached
+            - [ ] Release `v${{ steps.target.outputs.version }}` exists on this repo with all binaries + `manifest.json` attached
             - [ ] `manifest.json` sha256s match the uploaded binaries
+
+      - name: No-op summary
+        if: steps.changes.outputs.changed == 'false'
+        run: |
+          echo "No bump needed — VERSION and plugin.json already at ${{ steps.target.outputs.version }}." \
+            >> "$GITHUB_STEP_SUMMARY"

@@ -9,6 +9,11 @@
 # so we install to a $HOME-rooted path and export it via CLAUDE_ENV_FILE
 # (a documented SessionStart mechanism that persists env changes into
 # every subsequent Bash tool call).
+#
+# Environment overrides:
+#   EJOBS_CLI_RELEASE_BASE_URL   override the GitHub release base URL
+#                                (useful for testing against a fork).
+#                                Default: https://github.com/Ejobs/claude-plugins
 
 set -euo pipefail
 
@@ -19,14 +24,23 @@ INSTALL_ROOT="$HOME/.cache/ejobs-plugin"
 BIN_DIR="$INSTALL_ROOT/bin"
 BIN_PATH="$BIN_DIR/ejobs-cli"
 MARKER="$BIN_DIR/installed-version"
+PATH_EXPORT_LINE='export PATH="$HOME/.cache/ejobs-plugin/bin:$PATH"'
+
+RELEASE_BASE_URL="${EJOBS_CLI_RELEASE_BASE_URL:-https://github.com/Ejobs/claude-plugins}"
 
 # Append a PATH export to $CLAUDE_ENV_FILE so Claude's Bash tool can
-# invoke `ejobs-cli` as a bare command. No-op when not running inside
-# a SessionStart hook (e.g. manual smoke-tests).
+# invoke `ejobs-cli` as a bare command. Skipped when not running inside
+# a SessionStart hook (e.g. manual smoke-tests). Guarded against
+# duplicate entries in case the hook fires more than once against the
+# same env file.
 export_path_to_env_file() {
-  if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-    echo 'export PATH="$HOME/.cache/ejobs-plugin/bin:$PATH"' >> "$CLAUDE_ENV_FILE"
+  if [ -z "${CLAUDE_ENV_FILE:-}" ]; then
+    return 0
   fi
+  if [ -f "$CLAUDE_ENV_FILE" ] && grep -qF "$PATH_EXPORT_LINE" "$CLAUDE_ENV_FILE"; then
+    return 0
+  fi
+  echo "$PATH_EXPORT_LINE" >> "$CLAUDE_ENV_FILE"
 }
 
 # Portable SHA256 — prefer sha256sum (GNU coreutils, ubiquitous on Linux)
@@ -45,6 +59,13 @@ if [ ! -f "$VERSION_FILE" ]; then
 fi
 
 TARGET_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+
+# Sanity-check the version string before weaving it into URLs. A typo
+# like "latest" or "foo" would otherwise produce a cryptic 404.
+if ! [[ "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?(\+[A-Za-z0-9.-]+)?$ ]]; then
+  echo "ejobs plugin: invalid version in $VERSION_FILE: '$TARGET_VERSION' (expected SemVer X.Y.Z)" >&2
+  exit 1
+fi
 
 # Fast path: cached binary already matches the pinned version.
 if [ -x "$BIN_PATH" ] && [ -f "$MARKER" ] && [ "$(cat "$MARKER")" = "$TARGET_VERSION" ]; then
@@ -68,10 +89,9 @@ esac
 
 FILENAME="ejobs-cli-${OS}-${ARCH}"
 
-# All binaries + manifest.json are released as assets of this plugin repo.
 # Unified versioning: release tag matches plugin version exactly (v<X.Y.Z>).
 RELEASE_TAG="v${TARGET_VERSION}"
-BASE_URL="https://github.com/Ejobs/claude-plugins/releases/download/${RELEASE_TAG}"
+BASE_URL="${RELEASE_BASE_URL}/releases/download/${RELEASE_TAG}"
 
 MANIFEST_URL="${BASE_URL}/manifest.json"
 BINARY_URL="${BASE_URL}/${FILENAME}"
@@ -85,17 +105,25 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 curl --fail --silent --show-error --location "$MANIFEST_URL" -o "$TMP_DIR/manifest.json" \
   || { echo "ejobs plugin: failed to fetch $MANIFEST_URL" >&2; exit 1; }
 
-EXPECTED_SHA="$(
-  python3 -c "
+# Extract expected sha256 for our (os, arch) — keep stdout (the hash)
+# separate from stderr (the error message) so we can report both cleanly.
+if ! EXPECTED_SHA="$(
+  python3 - "$OS" "$ARCH" "$TMP_DIR/manifest.json" <<'PY' 2>"$TMP_DIR/py-err"
 import json, sys
-m = json.load(open('$TMP_DIR/manifest.json'))
-for b in m['binaries']:
-    if b['os'] == '$OS' and b['arch'] == '$ARCH':
-        print(b['sha256'])
+os_name, arch, manifest_path = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(manifest_path) as f:
+    m = json.load(f)
+for b in m["binaries"]:
+    if b["os"] == os_name and b["arch"] == arch:
+        print(b["sha256"])
         sys.exit(0)
-sys.exit('no matching binary in manifest for $OS/$ARCH')
-" 2>&1
-)" || { echo "ejobs plugin: $EXPECTED_SHA" >&2; exit 1; }
+print(f"no matching binary in manifest for {os_name}/{arch}", file=sys.stderr)
+sys.exit(1)
+PY
+)"; then
+  echo "ejobs plugin: manifest lookup failed: $(cat "$TMP_DIR/py-err")" >&2
+  exit 1
+fi
 
 curl --fail --silent --show-error --location "$BINARY_URL" -o "$TMP_DIR/$FILENAME" \
   || { echo "ejobs plugin: failed to fetch $BINARY_URL" >&2; exit 1; }
