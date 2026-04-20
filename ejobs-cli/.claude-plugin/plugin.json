@@ -1,0 +1,12 @@
+{
+  "name": "ejobs",
+  "version": "1.0.0",
+  "description": "Agent-first eJobs CLI. Ships an ejobs-cli binary auto-downloaded from GitHub Releases, plus skills for candidate and recruiter workflows.",
+  "author": {
+    "name": "eJobs",
+    "url": "https://www.ejobs.ro"
+  },
+  "homepage": "https://github.com/Ejobs/claude-plugins",
+  "license": "Proprietary",
+  "keywords": ["ejobs", "jobs", "cv", "recruiting", "candidates"]
+}

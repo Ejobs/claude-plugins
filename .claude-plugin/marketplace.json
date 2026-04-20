@@ -1,0 +1,16 @@
+{
+  "name": "ejobs-cli",
+  "owner": {
+    "name": "eJobs",
+    "url": "https://www.ejobs.ro"
+  },
+  "plugins": [
+    {
+      "name": "ejobs",
+      "source": "./ejobs-cli",
+      "description": "Agent-first eJobs CLI — candidate CV, job search, company job posting & applicant tools.",
+      "category": "productivity",
+      "tags": ["ejobs", "jobs", "cv", "recruiting", "candidates"]
+    }
+  ]
+}

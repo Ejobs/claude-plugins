@@ -1,0 +1,74 @@
+name: Bump ejobs-cli version
+
+# Triggered by a repository_dispatch event sent from the ejobs-cli release
+# pipeline (GitLab CI) once a new release is published and its binaries
+# are uploaded as assets to this repo's GitHub Release.
+#
+# The dispatcher must supply:
+#   client_payload.version — the new CLI version (e.g. "0.2.0")
+#
+# Example curl from GitLab CI (using a PAT with repo:write on this repo):
+#   curl -X POST \
+#     -H "Authorization: Bearer $GITHUB_DISPATCH_TOKEN" \
+#     -H "Accept: application/vnd.github+json" \
+#     https://api.github.com/repos/Ejobs/claude-plugins/dispatches \
+#     -d '{"event_type":"ejobs-cli-release","client_payload":{"version":"0.2.0"}}'
+
+on:
+  repository_dispatch:
+    types: [ejobs-cli-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "ejobs-cli version to pin (e.g. 0.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve target version
+        id: target
+        run: |
+          if [ -n "${{ github.event.client_payload.version }}" ]; then
+            echo "version=${{ github.event.client_payload.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump ejobs-cli/VERSION
+        run: |
+          echo "${{ steps.target.outputs.version }}" > ejobs-cli/VERSION
+
+      - name: Bump plugin.json
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("ejobs-cli/.claude-plugin/plugin.json")
+          m = json.loads(p.read_text())
+          m["version"] = "${{ steps.target.outputs.version }}"
+          p.write_text(json.dumps(m, indent=2) + "\n")
+          PY
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Bump ejobs-cli to ${{ steps.target.outputs.version }}"
+          title: "Bump ejobs-cli to ${{ steps.target.outputs.version }}"
+          branch: "bump/ejobs-cli-${{ steps.target.outputs.version }}"
+          body: |
+            Automated bump triggered by a new `ejobs-cli` release.
+
+            - VERSION → `${{ steps.target.outputs.version }}`
+            - plugin.json version → `${{ steps.target.outputs.version }}`
+
+            Before merging, confirm:
+            - [ ] Release `cli-v${{ steps.target.outputs.version }}` exists on this repo with all binaries + `manifest.json` attached
+            - [ ] `manifest.json` sha256s match the uploaded binaries
