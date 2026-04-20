@@ -5,13 +5,16 @@ description: Recruiter / company-side workflows on ejobs.ro — post and update 
 
 # eJobs — Recruiter workflows
 
-The `ejobs-cli` binary is installed by this plugin at:
+The `ejobs-cli` binary is auto-installed by this plugin's `SessionStart`
+hook and added to Claude's Bash-tool `PATH`. Invoke it as a bare command:
 
 ```
-$HOME/.cache/ejobs-plugin/bin/ejobs-cli
+ejobs-cli <subcommand> --output json
 ```
 
-Always call it via that full path (expand `$HOME` — it's not on `PATH`).
+If `ejobs-cli` is not found, start a fresh Claude Code session — the hook
+runs once per session and caches the binary for the pinned `VERSION`.
+
 Every command supports `--output json`, `--describe`, `--fields`,
 `--dry-run` for mutations.
 
@@ -29,7 +32,7 @@ Company accounts use a token-based flow, not the candidate OAuth browser
 flow. Check status:
 
 ```
-$HOME/.cache/ejobs-plugin/bin/ejobs-cli status --output json
+ejobs-cli status --output json
 ```
 
 If not logged in, the user must authenticate. Browser login works only in
@@ -45,7 +48,7 @@ field.
 Always dry-run first:
 
 ```
-$HOME/.cache/ejobs-plugin/bin/ejobs-cli company jobs create --xml @job.xml --dry-run --output json
+ejobs-cli company jobs create --xml @job.xml --dry-run --output json
 ```
 
 Required fields: `type`, `company`, `title`, `departments`, `industries`,
