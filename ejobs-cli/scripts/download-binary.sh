@@ -89,8 +89,10 @@ esac
 
 FILENAME="ejobs-cli-${OS}-${ARCH}"
 
-# Unified versioning: release tag matches plugin version exactly (v<X.Y.Z>).
-RELEASE_TAG="v${TARGET_VERSION}"
+# Release tag is namespaced by plugin name (ejobs-cli/v<X.Y.Z>) so the
+# plugin-hosting repo can accommodate sibling plugins later without a
+# tag-naming collision. GitHub handles slashes in release tag URLs.
+RELEASE_TAG="ejobs-cli/v${TARGET_VERSION}"
 BASE_URL="${RELEASE_BASE_URL}/releases/download/${RELEASE_TAG}"
 
 MANIFEST_URL="${BASE_URL}/manifest.json"
