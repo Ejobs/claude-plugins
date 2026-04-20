@@ -8,5 +8,11 @@
   },
   "homepage": "https://github.com/Ejobs/claude-plugins",
   "license": "Proprietary",
-  "keywords": ["ejobs", "jobs", "cv", "recruiting", "candidates"]
+  "keywords": [
+    "ejobs",
+    "jobs",
+    "cv",
+    "recruiting",
+    "candidates"
+  ]
 }
