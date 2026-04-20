@@ -6,8 +6,11 @@ recruiter workflows on [ejobs.ro](https://www.ejobs.ro).
 ## What it ships
 
 - **`ejobs-cli` binary** — auto-downloaded on session start into
-  `$CLAUDE_PLUGIN_DATA/bin/ejobs-cli`, version pinned by `VERSION`.
+  `$HOME/.cache/ejobs-plugin/bin/ejobs-cli`, version pinned by `VERSION`.
   Cached across sessions; sha256-verified against the release manifest.
+  (`$HOME` is used instead of `$CLAUDE_PLUGIN_DATA` so Claude's
+  Bash-tool calls can resolve the path — plugin-scoped env vars are
+  only set inside hooks.)
 - **`ejobs-candidate` skill** — auto-loads when the user talks about job
   search, CV editing, or applying.
 - **`ejobs-recruiter` skill** — auto-loads for job posting, applicants,
@@ -24,7 +27,7 @@ VERSION              ← pinned ejobs-cli version this plugin expects
 hooks/hooks.json     ← SessionStart → scripts/download-binary.sh
 scripts/
   download-binary.sh ← OS/arch-aware fetch, sha256 verify, cache under
-                       $CLAUDE_PLUGIN_DATA/bin
+                       $HOME/.cache/ejobs-plugin/bin
 skills/
   ejobs-candidate/   ← candidate workflows
   ejobs-recruiter/   ← recruiter workflows

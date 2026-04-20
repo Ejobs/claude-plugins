@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 # download-binary.sh — fires on SessionStart. Fetches the ejobs-cli binary
 # matching the host OS/arch and the version pinned in ejobs-cli/VERSION,
-# caches under $CLAUDE_PLUGIN_DATA/bin, and prepends it to PATH.
+# caches under $HOME/.cache/ejobs-plugin/bin, and prepends it to PATH.
 #
-# No-op on fast path: if the cached marker already records the target version
-# for this arch, we skip the network entirely.
+# Install location is deliberately NOT $CLAUDE_PLUGIN_DATA — that env var
+# is only populated inside hooks. Claude's Bash tool calls have $HOME but
+# not the plugin-scoped vars, so we install under $HOME and the skill
+# references the same deterministic path.
+#
+# No-op on fast path: if the cached marker already records the target
+# version for this arch, we skip the network entirely.
 
 set -euo pipefail
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:?CLAUDE_PLUGIN_ROOT must be set by Claude Code}"
-PLUGIN_DATA="${CLAUDE_PLUGIN_DATA:?CLAUDE_PLUGIN_DATA must be set by Claude Code}"
 
 VERSION_FILE="$PLUGIN_ROOT/VERSION"
-BIN_DIR="$PLUGIN_DATA/bin"
+INSTALL_ROOT="$HOME/.cache/ejobs-plugin"
+BIN_DIR="$INSTALL_ROOT/bin"
 BIN_PATH="$BIN_DIR/ejobs-cli"
 MARKER="$BIN_DIR/installed-version"
 
